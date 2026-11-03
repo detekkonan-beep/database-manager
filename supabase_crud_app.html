@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aplikasi Database Supabase</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{font-family:system-ui,Arial;margin:0;background:#f1f5f9;color:#172033;padding:16px}
+main{max-width:1000px;margin:auto}.panel{background:white;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 2px 10px #0000000b}
+h1{font-size:23px;margin:4px 0}h2{font-size:17px;margin:0 0 12px}.muted{color:#64748b;font-size:13px}
+input,textarea,select,button{font:inherit;padding:10px;border:1px solid #cbd5e1;border-radius:9px;width:100%}
+textarea{min-height:75px}button{background:#0f766e;color:white;border:0;cursor:pointer;font-weight:600}button.secondary{background:#475569}button.danger{background:#b91c1c}
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.actions{display:flex;gap:8px;margin-top:10px}.actions button{width:auto}
+.filters{display:grid;grid-template-columns:2fr 1fr;gap:10px}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:650px}th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14px}th{background:#f8fafc}
+.rowbtn{padding:7px 9px;width:auto;margin:2px;font-size:12px}.status{padding:8px;color:#0f766e;font-size:14px;white-space:pre-wrap}
+@media(max-width:600px){.formgrid,.filters{grid-template-columns:1fr}.actions{flex-wrap:wrap}}
+</style>
+</head>
+<body><main>
+<div class="panel"><h1>Database Manager</h1><p class="muted">Aplikasi sederhana input, edit, hapus, cari dan filter data — tersambung ke Supabase.</p>
+<div class="status" id="status">Menghubungkan…</div></div>
+<section class="panel"><h2 id="formTitle">Tambah data baru</h2>
+<form id="recordForm"><input type="hidden" id="recordId">
+<div class="formgrid">
+<div><label>Nama *</label><input id="name" required maxlength="120" placeholder="Nama"></div>
+<div><label>Nomor HP</label><input id="phone" maxlength="30" placeholder="08xxxxxxxxxx"></div>
+<div style="grid-column:1/-1"><label>Keterangan</label><textarea id="notes" maxlength="1000" placeholder="Keterangan tambahan"></textarea></div>
+</div><div class="actions"><button type="submit" id="saveBtn">Simpan data</button><button type="button" class="secondary" id="cancelBtn" style="display:none">Batal edit</button></div>
+</form></section>
+<section class="panel"><h2>Data tersimpan</h2>
+<div class="filters"><input id="search" placeholder="Find / cari nama, HP, keterangan…"><select id="filter"><option value="all">Filter: semua data</option><option value="phone">Memiliki nomor HP</option><option value="noPhone">Tanpa nomor HP</option></select></div>
+<p class="muted" id="count"></p><div class="tablewrap"><table><thead><tr><th>Nama</th><th>Nomor HP</th><th>Keterangan</th><th>Waktu</th><th>Aksi</th></tr></thead><tbody id="rows"></tbody></table></div>
+</section></main>
+<script>
+const URL='https://omhedpbpmgnozfdzvvpg.supabase.co';
+const KEY='sb_publishable_hwRfqfqocpto31PY5DlRYg_7QNf1e55';
+const sb=supabase.createClient(URL,KEY);
+const $=id=>document.getElementById(id);let records=[];
+function status(s){$('status').textContent=s}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function load(){status('Memuat data…');let {data,error}=await sb.from('demo_records').select('*').order('created_at',{ascending:false});
+if(error){status('Gagal memuat: '+error.message+'\nPastikan SQL setup sudah dijalankan di Supabase.');return}records=data||[];render();status('Terhubung. Data berasal dari database Supabase.')}
+function render(){let q=$('search').value.trim().toLowerCase(),f=$('filter').value;
+let list=records.filter(x=>(`${x.name||''} ${x.phone||''} ${x.notes||''}`).toLowerCase().includes(q)&&(f==='all'||(f==='phone'&&x.phone)||(f==='noPhone'&&!x.phone)));
+$('count').textContent=`Menampilkan ${list.length} dari ${records.length} data`;
+$('rows').innerHTML=list.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phone||'—')}</td><td>${esc(x.notes||'—')}</td><td>${x.created_at?new Date(x.created_at).toLocaleString('id-ID'):'—'}</td><td><button class="rowbtn secondary" onclick="editRecord('${x.id}')">Edit</button><button class="rowbtn danger" onclick="deleteRecord('${x.id}')">Hapus</button></td></tr>`).join('')||'<tr><td colspan="5">Tidak ada data.</td></tr>'}
+$('search').addEventListener('input',render);$('filter').addEventListener('change',render);
+$('recordForm').addEventListener('submit',async e=>{e.preventDefault();let id=$('recordId').value;
+let payload={name:$('name').value.trim(),phone:$('phone').value.trim()||null,notes:$('notes').value.trim()||null};
+if(!payload.name){alert('Nama wajib diisi');return}$('saveBtn').disabled=true;
+let result=id?await sb.from('demo_records').update(payload).eq('id',id):await sb.from('demo_records').insert(payload);
+$('saveBtn').disabled=false;if(result.error){status('Gagal menyimpan: '+result.error.message);return}
+resetForm();await load();status(id?'Data berhasil diedit.':'Data berhasil ditambahkan.')});
+window.editRecord=id=>{let x=records.find(r=>String(r.id)===String(id));if(!x)return;
+$('recordId').value=x.id;$('name').value=x.name||'';$('phone').value=x.phone||'';$('notes').value=x.notes||'';
+$('formTitle').textContent='Edit data';$('saveBtn').textContent='Simpan perubahan';$('cancelBtn').style.display='inline-block';window.scrollTo({top:0,behavior:'smooth'})};
+window.deleteRecord=async id=>{let x=records.find(r=>String(r.id)===String(id));if(!x||!confirm(`Hapus data "${x.name}"?`))return;
+let {error}=await sb.from('demo_records').delete().eq('id',id);if(error){status('Gagal menghapus: '+error.message);return}await load();status('Data berhasil dihapus.')};
+function resetForm(){$('recordForm').reset();$('recordId').value='';$('formTitle').textContent='Tambah data baru';$('saveBtn').textContent='Simpan data';$('cancelBtn').style.display='none'}
+$('cancelBtn').onclick=resetForm;load();
+</script></body></html>
