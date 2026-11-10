@@ -1,90 +1,171 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Input Pesanan AdheGas</title>
+<title>Pesanan AdheGas</title>
+
 <style>
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: Arial;
-  background: #eef2f7;
-  padding: 15px;
+  font-family: Arial, sans-serif;
+  background: #eef2f7;
+  padding: 15px;
+  margin: 0;
 }
+
 .container {
-  background: white;
-  padding: 20px;
-  border-radius: 15px;
-  max-width: 500px;
-  margin: auto;
+  background: white;
+  padding: 22px;
+  border-radius: 15px;
+  max-width: 500px;
+  margin: 30px auto;
+  box-shadow: 0 3px 12px #00000015;
 }
-h2 { color: #1769aa; }
+
+h2 {
+  color: #1769aa;
+  text-align: center;
+}
+
+label {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
 input {
-  width: 100%;
-  padding: 14px;
-  margin: 8px 0 18px;
-  box-sizing: border-box;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
+  width: 100%;
+  padding: 14px;
+  margin-top: 7px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
 }
+
 button {
-  width: 100%;
-  padding: 15px;
-  background: #1769aa;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 17px;
+  width: 100%;
+  padding: 15px;
+  margin-top: 25px;
+  background: #1769aa;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 17px;
+  cursor: pointer;
 }
-#hasil { margin-top: 15px; }
+
+button:disabled {
+  background: #888;
+}
+
+#hasil {
+  margin-top: 20px;
+  text-align: center;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
 </style>
 </head>
+
 <body>
+
 <div class="container">
-<h2>Input Pesanan AdheGas</h2>
+
+<h2>INPUT PESANAN ADHEGAS</h2>
+
 <form id="formPesan">
+
 <label>Alamat</label>
-<input id="alamat" required>
+<input id="alamat" type="text" required>
+
 <label>Barang</label>
-<input id="barang" required>
+<input id="barang" type="text" required>
+
 <label>Jumlah (jlh)</label>
 <input id="jlh" type="number" min="1" required>
+
 <label>Customer</label>
-<input id="customer" required>
-<button type="submit">Simpan Pesanan</button>
+<input id="customer" type="text" required>
+
+<button id="tombolSimpan" type="submit">
+SIMPAN PESANAN
+</button>
+
 </form>
+
 <p id="hasil"></p>
+
 </div>
+
 <script type="module">
+
 import { createClient }
 from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+// KONEKSI SUPABASE
+
 const supabase = createClient(
-  'https://bbjhnulqwhugdxucwjip.supabase.co',
-  'sb_publishable_VMUc-hCmm1YznMRzQE5wxg_YmUXz2Uh'
+  'https://bbjhnulqwhugdxucwjip.supabase.co',
+  'sb_publishable_VMUc-hCmm1YznMRzQE5wxg_YmUXz2Uh'
 );
-document.getElementById('formPesan')
-.addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const data = {
-    alamat: document.getElementById('alamat').value,
-    barang: document.getElementById('barang').value,
-    jlh: Number(document.getElementById('jlh').value),
-    customer: document.getElementById('customer').value
-  };
-  document.getElementById('hasil').textContent =
-    'Sedang menyimpan...';
-  const { error } = await supabase
-    .from('Pesan')
-    .insert(data);
-  if (error) {
-    document.getElementById('hasil').textContent =
-      'GAGAL: ' + error.message;
-  } else {
-    document.getElementById('hasil').textContent =
-      'PESANAN BERHASIL DISIMPAN';
-    document.getElementById('formPesan').reset();
-  }
+
+// PROSES SIMPAN DATA
+
+const form = document.getElementById('formPesan');
+const hasil = document.getElementById('hasil');
+const tombol = document.getElementById('tombolSimpan');
+
+form.addEventListener('submit', async function(e) {
+
+  e.preventDefault();
+
+  const data = {
+    alamat: document.getElementById('alamat').value.trim(),
+    barang: document.getElementById('barang').value.trim(),
+    jlh: Number(document.getElementById('jlh').value),
+    customer: document.getElementById('customer').value.trim()
+  };
+
+  tombol.disabled = true;
+  tombol.textContent = 'MENYIMPAN...';
+  hasil.style.color = '#1769aa';
+  hasil.textContent = 'Sedang menyimpan pesanan...';
+
+  try {
+
+    const { error } = await supabase
+      .from('Pesan')
+      .insert([data]);
+
+    if (error) {
+      throw error;
+    }
+
+    hasil.style.color = 'green';
+    hasil.textContent = 'PESANAN BERHASIL DISIMPAN!';
+
+    form.reset();
+
+  } catch (error) {
+
+    hasil.style.color = 'red';
+    hasil.textContent = 'GAGAL MENYIMPAN: ' + error.message;
+
+  } finally {
+
+    tombol.disabled = false;
+    tombol.textContent = 'SIMPAN PESANAN';
+
+  }
+
 });
+
 </script>
+
 </body>
 </html>
