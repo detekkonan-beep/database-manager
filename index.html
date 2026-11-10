@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Input Pesanan AdheGas</title>
+<style>
+body {
+  font-family: Arial;
+  background: #eef2f7;
+  padding: 15px;
+}
+.container {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  max-width: 500px;
+  margin: auto;
+}
+h2 { color: #1769aa; }
+input {
+  width: 100%;
+  padding: 14px;
+  margin: 8px 0 18px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+}
+button {
+  width: 100%;
+  padding: 15px;
+  background: #1769aa;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 17px;
+}
+#hasil { margin-top: 15px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h2>Input Pesanan AdheGas</h2>
+<form id="formPesan">
+<label>Alamat</label>
+<input id="alamat" required>
+<label>Barang</label>
+<input id="barang" required>
+<label>Jumlah (jlh)</label>
+<input id="jlh" type="number" min="1" required>
+<label>Customer</label>
+<input id="customer" required>
+<button type="submit">Simpan Pesanan</button>
+</form>
+<p id="hasil"></p>
+</div>
+<script type="module">
+import { createClient }
+from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const supabase = createClient(
+  'https://bbjhnulqwhugdxucwjip.supabase.co',
+  'sb_publishable_VMUc-hCmm1YznMRzQE5wxg_YmUXz2Uh'
+);
+document.getElementById('formPesan')
+.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const data = {
+    alamat: document.getElementById('alamat').value,
+    barang: document.getElementById('barang').value,
+    jlh: Number(document.getElementById('jlh').value),
+    customer: document.getElementById('customer').value
+  };
+  document.getElementById('hasil').textContent =
+    'Sedang menyimpan...';
+  const { error } = await supabase
+    .from('Pesan')
+    .insert(data);
+  if (error) {
+    document.getElementById('hasil').textContent =
+      'GAGAL: ' + error.message;
+  } else {
+    document.getElementById('hasil').textContent =
+      'PESANAN BERHASIL DISIMPAN';
+    document.getElementById('formPesan').reset();
+  }
+});
+</script>
+</body>
+</html>
